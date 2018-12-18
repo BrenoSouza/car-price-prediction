@@ -14,4 +14,3 @@ del train['split']
 
 test.to_csv('../data/initial_random/test.csv', index=False)
 train.to_csv('../data/initial_random/train.csv', index=False)
-

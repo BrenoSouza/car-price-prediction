@@ -1,0 +1,97 @@
+---
+title: "regressao-ia"
+author: "Anarco Nascimento"
+date: "17 de dezembro de 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(PythonInR)
+com_outliers <- read.csv("../data/initial/true_car_listings_mapped.csv")
+sem_outliers <- read.csv("../data/initial/true_car_listings_filtered_mapped.csv")
+```
+
+
+##Criando os 10 datasets de treino e os 10 datasets para testes
+```{python}
+import pandas as pd
+import numpy as np
+for i in range(10):
+  df = pd.read_csv('../data/initial/true_car_listings_filtered_mapped.csv')
+  df['split'] = np.random.randn(df.shape[0], 1)
+
+  msk = np.random.rand(len(df)) <= 0.8
+
+  train = df[msk]
+  test = df[~msk]
+
+  del test['split']
+  del train['split']
+  
+  nameTest = '../data/initial_random/filtered_data/test'+str(i)+'.csv'
+  nameTrain = '../data/initial_random/filtered_data/train'+str(i)+'.csv'
+  
+  test.to_csv(nameTest, index=False)
+  train.to_csv(nameTrain, index=False)
+
+```
+
+```{r}
+erros_train_original <- 1:10
+erros_train_filtered <- 1:10
+
+erros_test_original <- 1:10
+erros_test_filtered <- 1:10
+
+for (i in 0:9) {
+    
+  original_train_name <- paste("../data/initial_random/original_data/train",as.character(i),".csv",sep = "")
+  original_test_name <- paste("../data/initial_random/original_data/test",as.character(i),".csv",sep = "")
+  
+  filtered_train_name <- paste("../data/initial_random/filtered_data/train",as.character(i),".csv",sep = "")
+  filtered_test_name <- paste("../data/initial_random/filtered_data/test",as.character(i),".csv",sep = "")
+  
+  x_train_original <-read.csv(original_train_name)
+  y_train_original <- x_train_original$Price
+  
+  x_train_filtered <-read.csv(filtered_train_name)
+  y_train_filtered <- x_train_filtered$Price
+  
+  x_test_original <-read.csv(original_test_name)
+  x_test_filtered <-read.csv(filtered_test_name)
+  
+  x_train_original$Price <- NULL
+  x_train_filtered$Price <- NULL
+  
+  x_train_original <- cbind(x_train_original,y_train_original)
+  x_train_filtered <- cbind(x_train_filtered,y_train_filtered)
+  
+  linear_original <- lm(y_train_original ~., data = x_train_original)
+  linear_filtered <- lm(y_train_filtered ~., data = x_train_filtered)
+  
+  pred_ori <- predict(linear_original,x_train_original)
+  pred_fil <- predict(linear_filtered,x_train_filtered)
+  
+  predicted_original <- predict(linear_original,x_test_original)
+  predicted_filtered <- predict(linear_filtered,x_test_filtered)
+  
+  erros_train_original[i+1] <- sqrt(mean((pred_ori - y_train_original)^2))
+  erros_train_filtered[i+1] <- sqrt(mean((pred_fil - y_train_filtered)^2))
+  
+  erros_test_original[i+1] <- sqrt(mean((predicted_original - x_test_original$Price)^2))
+  erros_test_filtered[i+1] <- sqrt(mean((predicted_filtered - x_test_filtered$Price)^2))
+  
+}
+media_train_original <- mean(erros_train_original)
+media_train_filtered <- mean(erros_train_filtered)
+media_test_original <- mean(erros_test_original)
+media_test_filtered <- mean(erros_test_filtered)
+
+desvio_train_original <- sd(erros_train_original)
+desvio_train_filtered <- sd(erros_train_filtered)
+desvio_test_original <- sd(erros_test_original)
+desvio_test_filtered <- sd(erros_test_filtered)
+
+```
+
